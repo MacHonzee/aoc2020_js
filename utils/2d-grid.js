@@ -2,7 +2,12 @@ const Utils = require("./utils");
 
 class Grid2d {
   constructor(gridData) {
-    this._data = gridData;
+    if (typeof gridData === "string") {
+      this._data = gridData.split("\n").map(line => line.split(""));
+    } else {
+      this._data = gridData;
+    }
+
     this._rowLength = gridData[0] ? gridData[0].length : 0;
   }
 
@@ -49,6 +54,18 @@ class Grid2d {
     if (diagonals && notOnLastRow && notInLastColumn) neighbours.push([rowI + 1, columnI + 1]);
 
     return neighbours;
+  }
+
+  get rowCount() {
+    return this._data.length;
+  }
+
+  get colCount() {
+    return this._rowLength;
+  }
+
+  get data() {
+    return this._data;
   }
 }
 
