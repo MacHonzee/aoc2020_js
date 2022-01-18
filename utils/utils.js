@@ -10,6 +10,20 @@ class Utils {
       cb(i);
     }
   }
+
+  arraySum(array, unitCb) {
+    return array.reduce((sum, item) => {
+      if (unitCb) return sum + unitCb(item);
+      return sum + item;
+    }, 0);
+  }
+
+  productSum(array, unitCb) {
+    return array.reduce((sum, item) => {
+      if (unitCb) return sum * unitCb(item);
+      return sum * item;
+    }, 1);
+  }
 }
 
 module.exports = new Utils();
