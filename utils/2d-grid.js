@@ -8,7 +8,7 @@ class Grid2d {
       this._data = gridData;
     }
 
-    this._rowLength = gridData[0] ? gridData[0].length : 0;
+    this._rowLength = this._data[0] ? this._data[0].length : 0;
   }
 
   eachLine(cb) {
@@ -23,37 +23,46 @@ class Grid2d {
   }
 
   eachCell(cb) {
-    Utils.nTimes(this._data.length, (lineI) => {
-      Utils.nTimes(this._data[lineI].length, (columnI) => {
-        let cell = this._data[lineI][columnI];
-        cb(cell, lineI, columnI);
+    Utils.nTimes(this._data.length, (rowI) => {
+      Utils.nTimes(this._data[rowI].length, (columnI) => {
+        let cell = this._data[rowI][columnI];
+        cb(cell, rowI, columnI);
       });
     });
   }
 
   getNeighbours(rowI, columnI, diagonals = false) {
-    let neighbours = [];
+    let neighborIndexes = [];
 
-    let notInFirstColumn = rowI > 0;
-    let notOnFirstRow = columnI > 0;
-    let notInLastColumn = rowI < this._rowLength - 1;
-    let notOnLastRow = columnI < this._data.length - 1;
+    let notOnFirstRow = rowI > 0;
+    let notInFirstColumn = columnI > 0;
+    let notOnLastRow = rowI < this._data.length - 1;
+    let notInLastColumn = columnI < this._rowLength - 1;
 
     // top row
-    if (diagonals && notOnFirstRow && notInFirstColumn) neighbours.push([rowI - 1, columnI - 1]);
-    if (notOnFirstRow) neighbours.push([rowI - 1, columnI]);
-    if (diagonals && notOnFirstRow && notInLastColumn) neighbours.push([rowI - 1, columnI + 1]);
+    if (diagonals && notOnFirstRow && notInFirstColumn) neighborIndexes.push([rowI - 1, columnI - 1]);
+    if (notOnFirstRow) neighborIndexes.push([rowI - 1, columnI]);
+    if (diagonals && notOnFirstRow && notInLastColumn) neighborIndexes.push([rowI - 1, columnI + 1]);
 
     // middle row
-    if (notInFirstColumn) neighbours.push([rowI, columnI - 1]);
-    if (notInLastColumn) neighbours.push([rowI, columnI + 1]);
+    if (notInFirstColumn) neighborIndexes.push([rowI, columnI - 1]);
+    if (notInLastColumn) neighborIndexes.push([rowI, columnI + 1]);
 
     // bottom row
-    if (diagonals && notOnLastRow && notInFirstColumn) neighbours.push([rowI + 1, columnI - 1]);
-    if (notOnLastRow) neighbours.push([rowI + 1, columnI]);
-    if (diagonals && notOnLastRow && notInLastColumn) neighbours.push([rowI + 1, columnI + 1]);
+    if (diagonals && notOnLastRow && notInFirstColumn) neighborIndexes.push([rowI + 1, columnI - 1]);
+    if (notOnLastRow) neighborIndexes.push([rowI + 1, columnI]);
+    if (diagonals && notOnLastRow && notInLastColumn) neighborIndexes.push([rowI + 1, columnI + 1]);
 
-    return neighbours;
+    return neighborIndexes.map(([rowI, colI]) => this.data[rowI][colI]);
+  }
+
+  visualize() {
+    console.log(this.rawData);
+  }
+
+  copy() {
+    let newData = this._data.map(line => [...line]);
+    return new Grid2d(newData);
   }
 
   get rowCount() {
@@ -64,8 +73,16 @@ class Grid2d {
     return this._rowLength;
   }
 
+  set data(data) {
+    this._data = data;
+  }
+
   get data() {
     return this._data;
+  }
+
+  get rawData() {
+    return this._data.map(line => line.join("")).join("\n");
   }
 }
 
