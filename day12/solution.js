@@ -1,41 +1,58 @@
 const instructions = require("./input");
 
-const DIRECTION_MAP = {
-  N: "_north",
-  S: "_south",
-  E: "_east",
-  W: "_west"
-};
 const DIRECTIONS_ORDER = ["N", "E", "S", "W"];
+const RIGHT_ANGLE = 90;
 
 class Ship {
-  constructor() {
-    this._direction = "E";
-    this._north = 0;
-    this._east = 0;
-    this._west = 0;
-    this._south = 0;
+  constructor(north = 0, east = 0) {
+    this.direction = "E";
+    this.N = north;
+    this.E = east;
+    this.W = 0;
+    this.S = 0;
   }
 
   moveInDirection(direction, value) {
-    let directionKey = DIRECTION_MAP[direction];
-    this[directionKey] += value;
+    this[direction] += value;
   }
 
-  rotate(direction, degrees) {
-    let indexesCount = (direction === "R" ? degrees : -degrees) / 90;
-    let currentIndex = DIRECTIONS_ORDER.indexOf(this._direction);
+  getNewDirection(direction, rotation, degrees) {
+    let indexesCount = (rotation === "R" ? degrees : -degrees) / RIGHT_ANGLE;
+    let currentIndex = DIRECTIONS_ORDER.indexOf(direction);
     let newIndex = (currentIndex + indexesCount) % 4;
     if (newIndex < 0) newIndex += 4;
-    this._direction = DIRECTIONS_ORDER[newIndex];
+    return DIRECTIONS_ORDER[newIndex];
+  }
+
+  rotate(rotation, degrees) {
+    this.direction = this.getNewDirection(this.direction, rotation, degrees);
+  }
+
+  translateByDegrees(rotation, degrees) {
+    let newDirectionsValues = DIRECTIONS_ORDER.reduce((map, direction) => {
+      let newDirection = this.getNewDirection(direction, rotation, degrees);
+      map[newDirection] = this[direction];
+      return map;
+    }, {});
+
+    Object.keys(newDirectionsValues).forEach(newDirection => {
+      this[newDirection] = newDirectionsValues[newDirection];
+    });
   }
 
   moveForward(value) {
-    this.moveInDirection(this._direction, value);
+    this.moveInDirection(this.direction, value);
   }
 
   getManhattanDistance() {
-    return Math.abs(this._north - this._south) + Math.abs(this._west - this._east);
+    return Math.abs(this.N - this.S) + Math.abs(this.W - this.E);
+  }
+
+  getOrientations() {
+    return [
+      this.N > this.S ? ["N", this.N - this.S] : ["S", this.S - this.N],
+      this.E > this.W ? ["E", this.E - this.W] : ["W", this.W - this.E]
+    ];
   }
 }
 
@@ -61,3 +78,31 @@ for (let [instruction, value] of instructions) {
 }
 
 console.log(firstShip.getManhattanDistance());
+
+// part two
+let waypoint = new Ship(1, 10);
+let secondShip = new Ship();
+for (let [instruction, value] of instructions) {
+  switch (instruction) {
+  case "N":
+  case "E":
+  case "W":
+  case "S":
+    waypoint.moveInDirection(instruction, value);
+    break;
+  case "R":
+  case "L":
+    waypoint.translateByDegrees(instruction, value);
+    break;
+  case "F": {
+    let waypointOrientation = waypoint.getOrientations();
+    secondShip.moveInDirection(waypointOrientation[0][0], value * waypointOrientation[0][1]);
+    secondShip.moveInDirection(waypointOrientation[1][0], value * waypointOrientation[1][1]);
+    break;
+  }
+  default:
+    throw "Unexpected instruction";
+  }
+}
+
+console.log(secondShip.getManhattanDistance());
