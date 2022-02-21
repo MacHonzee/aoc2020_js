@@ -1,3 +1,4 @@
+// TODO rename to IterationUtils in some future version
 class Utils {
   nTimes(n, cb) {
     for (let i = 0; i < n; i++) {
