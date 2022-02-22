@@ -62,7 +62,33 @@ function evaluateLine(line) {
 }
 
 function solvePartOne() {
-  // too low
   console.log(Utils.arraySum(lines, evaluateLine));
 }
 solvePartOne();
+
+// lets try different approach, by moving through the precedences
+// 1) solve brackets
+// 2) solve addition
+// 3) solve multiplication
+function evaluateLineTwo(line) {
+  // 1) solve all brackets, there should be no brackets after this while cycle
+  let bracketsStart = line.indexOf("(");
+  while (bracketsStart > -1) {
+    let content = extractFromBrackets(line, bracketsStart);
+    let partialResult = evaluateLineTwo(content);
+    line = line.substring(0, bracketsStart) + partialResult + line.substring(bracketsStart + content.length + 2);
+    bracketsStart = line.indexOf("(");
+  }
+
+  // 2) solve all additions by matching groups of numbers separated by " * "
+  let additionGroups = line.split(" * ");
+  let additionResults = additionGroups.map(group => Utils.arraySum(group.split(" + ").map(Number)));
+
+  // 3) now we should have all numbers added, so we multiply them together
+  return Utils.arrayProduct(additionResults);
+}
+
+function solvePartTwo() {
+  console.log(Utils.arraySum(lines, evaluateLineTwo));
+}
+solvePartTwo();
