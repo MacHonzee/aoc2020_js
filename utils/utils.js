@@ -19,7 +19,7 @@ class Utils {
     }, 0);
   }
 
-  productSum(array, unitCb) {
+  arrayProduct(array, unitCb) {
     return array.reduce((sum, item) => {
       if (unitCb) return sum * unitCb(item);
       return sum * item;
