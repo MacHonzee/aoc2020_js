@@ -17,7 +17,7 @@ class Grid2d {
 
   eachColumn(cb) {
     Utils.nTimes(this._rowLength, (i) => {
-      let column = this._data.map(line => line[i]);
+      let column = this.getCol(i);
       cb(column, i);
     });
   }
@@ -83,6 +83,22 @@ class Grid2d {
 
   get rawData() {
     return this._data.map(line => line.join("")).join("\n");
+  }
+
+  getRow(index) {
+    return this._data[index];
+  }
+
+  getCol(index) {
+    return this._data.map(row => row[index]);
+  }
+
+  getCell(rowI, colI) {
+    return this._data[rowI]?.[colI];
+  }
+
+  setCell(rowI, colI, value) {
+    this._data[rowI][colI] = value;
   }
 }
 
