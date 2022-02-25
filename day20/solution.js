@@ -16,7 +16,8 @@ function convertToBorders() {
       grid.getCol(0).join("")
     ];
 
-    // could be done in iterations, this aint so bad though
+    // TODO if I uncomment a few of them, the algorithm does not end :-/ uncommenting just
+    // one variation increases the length from 2.5s to loooooot
     let bordersVariations = [
       borders,
       rotate(borders),
@@ -25,18 +26,18 @@ function convertToBorders() {
 
       flipHorizontally(borders),
       flipHorizontally(rotate(borders)),
-      flipHorizontally(rotate(rotate(borders))),
-      flipHorizontally(rotate(rotate(rotate(borders)))),
+      // flipHorizontally(rotate(rotate(borders))),
+      // flipHorizontally(rotate(rotate(rotate(borders)))),
 
       flipVertically(borders),
       flipVertically(rotate(borders)),
-      flipVertically(rotate(rotate(borders))),
-      flipVertically(rotate(rotate(rotate(borders)))),
+      // flipVertically(rotate(rotate(borders))),
+      // flipVertically(rotate(rotate(rotate(borders)))),
 
-      flipHorizontally(flipVertically(borders)),
-      flipHorizontally(flipVertically(rotate(borders))),
-      flipHorizontally(flipVertically(rotate(rotate(borders)))),
-      flipHorizontally(flipVertically(rotate(rotate(rotate(borders))))),
+      // flipHorizontally(flipVertically(borders)),
+      // flipHorizontally(flipVertically(rotate(borders))),
+      // flipHorizontally(flipVertically(rotate(rotate(borders)))),
+      // flipHorizontally(flipVertically(rotate(rotate(rotate(borders))))),
     ];
     bordersMap.set(tileId, bordersVariations);
   });
@@ -44,10 +45,17 @@ function convertToBorders() {
   return bordersMap;
 }
 
+function reverseString(str) {
+  return str.split("").reverse().join("");
+}
+
 function rotate(borders) {
-  let newBorders = [...borders];
-  newBorders.push(newBorders.shift());
-  return newBorders;
+  return [
+    reverseString(borders[3]),
+    borders[0],
+    reverseString(borders[1]),
+    borders[2]
+  ];
 }
 
 function flipHorizontally(borders) {
@@ -112,18 +120,20 @@ function findNextEmptySlot(globalMap) {
   return [undefined, undefined];
 }
 
-function solveNextStep(globalMap, bordersMap, tileIds) {
-  let [x, y] = findNextEmptySlot(globalMap);
+function isAllFilled(globalMap) {
+  return globalMap.getCell(SQUARE_LEN - 1, SQUARE_LEN - 1);
+}
 
+function solveNextStep(globalMap, bordersMap, tileIds) {
   // we have reached the end of globalMap, everything should be set properly
-  if (x == null) return globalMap;
+  if (isAllFilled(globalMap)) return globalMap;
+
+  let [x, y] = findNextEmptySlot(globalMap);
 
   // optimalization variable, this way we save a few iterations below
   let usedTiles = new Set();
   globalMap.eachCell(cell => cell && usedTiles.add(cell.split("_")[0]));
 
-  // TODO breakpoint on : globalMap.getCell(0, 0) === "1951_8";
-  // apparently, it inserts 2311_14 incorrectly to position 0,1 (should be other mutation)
   for (let tileId of tileIds) {
     if (usedTiles.has(tileId)) continue;
 
@@ -139,6 +149,9 @@ function solveNextStep(globalMap, bordersMap, tileIds) {
         globalMap.setCell(x, y, `${tileId}_${i}`);
 
         solveNextStep(globalMap, bordersMap, tileIds);
+
+        // check if we have filled last slot correctly. If yes, we quit the iterations.
+        if (isAllFilled(globalMap)) return globalMap;
       }
     }
   }
@@ -146,8 +159,7 @@ function solveNextStep(globalMap, bordersMap, tileIds) {
   // rollback mechanism here, we have to clear globalMap, so we check if everything was filled
   // and if not (we have went through every rotation and every tile and none could fit),
   // then we make delete current globalMap possition
-  let lastSlot = globalMap.getCell(SQUARE_LEN - 1, SQUARE_LEN - 1);
-  if (!lastSlot) {
+  if (!isAllFilled(globalMap)) {
     globalMap.setCell(x, y, null);
   }
 
@@ -178,16 +190,24 @@ function solvePartOne() {
   let tileIds = Array.from(tileMap.keys());
   let bordersMap = convertToBorders();
 
-  drawBorder("1951_8", bordersMap);
-  drawBorder("2311_14", bordersMap);
-
   // and then we work with simplification of target map to be filled by tiles
   let globalMap = getEmptyMap();
 
   // and start our backtracking algorithm that gradually populates the globalMap
+  console.time("solution");
   solveNextStep(globalMap, bordersMap, tileIds);
-
   console.log("-> globalMap", globalMap);
+  console.timeEnd("solution");
+
+  let corners = [
+    globalMap.getCell(0, 0),
+    globalMap.getCell(0, SQUARE_LEN - 1),
+    globalMap.getCell(SQUARE_LEN - 1, 0),
+    globalMap.getCell(SQUARE_LEN - 1, SQUARE_LEN - 1)
+  ];
+  console.log(Utils.arrayProduct(corners, corner => parseInt(corner.split("_")[0])));
+
+  return globalMap;
 }
 
 solvePartOne();
