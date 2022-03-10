@@ -8,10 +8,10 @@ class Grid2d {
       this._data = gridData;
     }
 
-    this._rowLength = this._data[0] ? this._data[0].length : 0;
+    this._calculateRowLength();
   }
 
-  eachLine(cb) {
+  eachRow(cb) {
     this._data.forEach(cb);
   }
 
@@ -75,6 +75,7 @@ class Grid2d {
 
   set data(data) {
     this._data = data;
+    this._calculateRowLength();
   }
 
   get data() {
@@ -99,6 +100,10 @@ class Grid2d {
 
   setCell(rowI, colI, value) {
     this._data[rowI][colI] = value;
+  }
+
+  _calculateRowLength() {
+    this._rowLength = this._data[0] ? this._data[0].length : 0;
   }
 }
 

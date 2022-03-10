@@ -4,7 +4,7 @@ const Grid2d = require("../utils/2d-grid");
 
 // few times to the right should be enough. Pre-parsing to Grid2D is useless though
 let biggerMap = [];
-TreesMap.eachLine(line => {
+TreesMap.eachRow(line => {
   let newLine = [];
   Utils.nTimes(TreesMap.rowCount, () => {
     newLine.push(line);

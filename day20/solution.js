@@ -19,18 +19,19 @@ function convertToBorders() {
     // TODO if I uncomment a few of them, the algorithm does not end :-/ uncommenting just
     // one variation increases the length from 2.5s to loooooot
     let bordersVariations = [
-      borders,
-      rotate(borders),
-      rotate(rotate(borders)),
-      rotate(rotate(rotate(borders))),
-
-      flipHorizontally(borders),
       flipHorizontally(rotate(borders)),
+      flipHorizontally(borders),
+
+      flipVertically(rotate(borders)),
+      flipVertically(borders),
+
+      rotate(rotate(rotate(borders))),
+      rotate(rotate(borders)),
+      rotate(borders),
+      borders,
       // flipHorizontally(rotate(rotate(borders))),
       // flipHorizontally(rotate(rotate(rotate(borders)))),
 
-      flipVertically(borders),
-      flipVertically(rotate(borders)),
       // flipVertically(rotate(rotate(borders))),
       // flipVertically(rotate(rotate(rotate(borders)))),
 
@@ -194,10 +195,7 @@ function solvePartOne() {
   let globalMap = getEmptyMap();
 
   // and start our backtracking algorithm that gradually populates the globalMap
-  console.time("solution");
   solveNextStep(globalMap, bordersMap, tileIds);
-  console.log("-> globalMap", globalMap);
-  console.timeEnd("solution");
 
   let corners = [
     globalMap.getCell(0, 0),
@@ -207,7 +205,163 @@ function solvePartOne() {
   ];
   console.log(Utils.arrayProduct(corners, corner => parseInt(corner.split("_")[0])));
 
-  return globalMap;
+  return { bordersMap, globalMap };
 }
 
-solvePartOne();
+let { bordersMap, globalMap } = solvePartOne();
+
+// part two
+// TODO consider adding this to Grid2D class
+// TODO consider adding "map" methods
+function rotateTile(tile) {
+  let newData = [];
+  for (let y = 0; y < tile.colCount; y++) {
+    let newRow = [];
+    for (let x = tile.rowCount - 1; x >= 0; x--) {
+      newRow.push(tile.getCell(x, y));
+    }
+    newData.push(newRow);
+  }
+  tile.data = newData;
+  return tile;
+}
+
+// TODO consider adding this to Grid2D class
+function flipTileHorizontally(tile) {
+  let newData = [];
+  tile.eachRow(row => newData.push(row.reverse()));
+  tile.data = newData;
+  return tile;
+}
+
+// TODO consider adding this to Grid2D class
+function flipTileVertically(tile) {
+  let newData = [];
+  for (let y = tile.rowCount - 1; y >= 0; y--) {
+    newData.push(tile.getRow(y));
+  }
+  tile.data = newData;
+  return tile;
+}
+
+// TODO consider adding this to Grid2D class
+function inverseTile(tile) {
+  let newData = [];
+  tile.eachColumn(col => newData.push(col));
+  tile.data = newData;
+  return tile;
+}
+
+const TILE_BUILDER = [
+  (tile) => flipTileHorizontally(rotateTile(tile)),
+  (tile) => flipTileHorizontally(tile),
+
+  (tile) => flipTileVertically(rotateTile(tile)),
+  (tile) => flipTileVertically(tile),
+
+  (tile) => rotateTile(rotateTile(rotateTile(tile))),
+  (tile) => rotateTile(rotateTile(tile)),
+  (tile) => rotateTile(tile),
+  (tile) => tile,
+
+];
+
+function buildTileFromBorderId(borderId) {
+  let [tileId, borderI] = borderId.split("_");
+  let tile = tileMap.get(tileId).copy();
+  let tileBuildingFunction = TILE_BUILDER[parseInt(borderI)];
+  return tileBuildingFunction(tile);
+}
+
+function mergeGridsToMap(globalMap) {
+  let masterData = [];
+  globalMap.eachRow(tilesRow => {
+    // we need to slice the borders aswell
+    for (let i = 1; i < tilesRow[0].rowCount - 1; i++) {
+      let newRow = tilesRow.map(singleTileRow => singleTileRow.getRow(i).slice(1, singleTileRow.colCount - 1)).flat();
+      masterData.push(newRow);
+    }
+  });
+  return new Grid2d(masterData);
+}
+
+const MONSTER_WIDTH = 18;
+const MONSTER_HEIGHT = 2;
+const MONSTER_COORDS = [
+  [18],
+  [0, 5, 6, 11, 12, 17, 18, 19],
+  [1, 4 ,7, 10, 13, 16]
+];
+const FULL = "#";
+
+function matchRestOfMonster(startRow, startCol, map) {
+  let colOffset = startCol - MONSTER_WIDTH;
+  let allCoords = [];
+
+  for (let rowOffset = 0; rowOffset < MONSTER_COORDS.length; rowOffset++) {
+    let coordsSet = MONSTER_COORDS[rowOffset];
+    for (let colI of coordsSet) {
+      if (map.getCell(startRow + rowOffset, colI + colOffset) === FULL) {
+        allCoords.push([startRow + rowOffset, colI + colOffset]);
+      } else {
+        return;
+      }
+    }
+  }
+
+  return allCoords;
+}
+
+function findMonsters(map) {
+  let monsters = [];
+
+  // match "head" first, then check the rest of body
+  for (let col = MONSTER_WIDTH; col < map.colCount; col++) {
+    for (let row = 0; row < map.rowCount - MONSTER_HEIGHT; row++) {
+      let cell = map.getCell(row, col);
+      if (cell === FULL) {
+        let monster = matchRestOfMonster(row, col, map);
+        if (monster) monsters.push(monster);
+      }
+    }
+  }
+
+  return monsters.length && monsters;
+}
+
+// beware, it is destructive method
+function drawMonsters(map, monsters) {
+  for (let monster of monsters) {
+    for (let [x, y] of monster) {
+      map.setCell(x, y, "O");
+    }
+  }
+  map.visualize();
+}
+
+function solvePartTwo(bordersMap, globalMap) {
+  // now we need to reverse-build the tiles from the borderId
+  globalMap.eachCell((borderId, rowI, colI) => {
+    globalMap.setCell(rowI, colI, buildTileFromBorderId(borderId));
+  });
+
+  // and then merge it to one huge map of all tiles in correct rotations and flips
+  let masterMap = mergeGridsToMap(globalMap);
+
+  // and then we find the tile rotation with any monsters inside
+  let monsters;
+  for (let tileFn of TILE_BUILDER) {
+    let currentMonsters = findMonsters(tileFn(masterMap));
+    if (currentMonsters) {
+      monsters = currentMonsters;
+      break;
+    }
+  }
+
+  drawMonsters(masterMap, monsters);
+
+  console.log("partTwo", Array.from(masterMap.rawData.matchAll("#")).length);
+  return masterMap;
+}
+
+solvePartTwo(bordersMap, globalMap);
